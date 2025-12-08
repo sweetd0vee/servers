@@ -501,7 +501,7 @@ def main():
 
     # Детальный анализ выбранного сервера
     st.markdown("---")
-    st.header(f"Детальный анализ: {selected_server}")
+    st.header(f"Детальный анализ сервера: {selected_server}")
 
     col4, col5 = st.columns(2)
 
@@ -544,7 +544,7 @@ def main():
         """, unsafe_allow_html=True)
 
     # Таймлайн нагрузки
-    st.subheader("Динамика нагрузки во времени")
+    st.subheader("Динамика нагрузки по времени")
     fig_timeline = create_load_timeline(df, selected_server)
     st.plotly_chart(fig_timeline, use_container_width=True)
 
