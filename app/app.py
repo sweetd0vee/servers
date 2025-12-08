@@ -3,10 +3,17 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
+import warnings
+import json
+from datetime import datetime, timedelta
+import requests
+import os
+from dotenv import load_dotenv
 
-# Methods:
-# create_cpu_heatmap, create_memory_heatmap
-# create_cpu_load_chart, create_mem_load_chart
+# Загружаем переменные окружения (для API ключей)
+load_dotenv()
+
+warnings.filterwarnings('ignore')
 
 
 # Настройка страницы
