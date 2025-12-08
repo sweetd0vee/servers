@@ -7,7 +7,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./models:/models
+      - ~/docker-share/models:/models
     environment:
       GGML_CPU_N_THREADS: 16
     command: >
@@ -33,7 +33,7 @@ services:
       - "8050:8050"
       - "8501:8501"
     volumes:
-      - /Users/sweetd0ve/Work/Sber/servers/data:/data:ro
+      - ~/docker-share/data:/data:ro
     environment:
       DASH_DATA_DIR: "${DASH_DATA_DIR:-/app/data}"
       SERVER_PORT: 8501

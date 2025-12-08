@@ -1,11 +1,11 @@
 FROM python:3.12-slim
 
 RUN mkdir /work
-RUN mkdir /data
+RUN mkdir /work/data
 
 COPY ./requirements.txt /work
 COPY ./app/*.py /work
-COPY ./data/* /data
+COPY ./data/* /work/data
 
 WORKDIR /work
 
