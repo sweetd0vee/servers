@@ -26,7 +26,7 @@ pip-delete-this-directory.txt
 venv/
 
 # Editors / IDEs
-.idea/  # IntelliJ IDEA / PyCharm
+.idea/
 *.iml
 .vscode/ # VS Code
 .DS_Store # macOS
