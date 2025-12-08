@@ -20,7 +20,7 @@ services:
       resources:
         limits:
           memory: 16G
-          cpus: '16'
+          cpus: '8'
     restart: unless-stopped
 
   vm-dashboard:
@@ -31,10 +31,13 @@ services:
     container_name: vm_dashboard
     ports:
       - "8050:8050"
+      - "8501:8501"
     volumes:
-      - ./data:/app/data:ro
+      - /Users/sweetd0ve/Work/Sber/servers/data:/data:ro
     environment:
       DASH_DATA_DIR: "${DASH_DATA_DIR:-/app/data}"
+      SERVER_PORT: 8501
+      SERVER_HOST: "localhost"
     depends_on:
       - llama-server
     deploy:  # Исправлено: ресурсы теперь в разделе deploy
