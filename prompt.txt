@@ -33,3 +33,15 @@ test_queries = [
     "Нагрузка: CPU 45%, RAM 50%, 150 запросов/сек",
     "Диск: /var/log - 98%, /home - 45%, CPU: 65%, RAM: 55%"
 ]
+
+
+Параметры настройки модели:
+{
+    "max_new_tokens": 500,
+    "do_sample": True,
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "repetition_penalty": 1.1,
+    "pad_token_id": self.tokenizer.eos_token_id,
+    "eos_token_id": self.tokenizer.eos_token_id,
+}
