@@ -5,16 +5,17 @@ import re
 
 class ServerMetricsAnalyzer:
     """
-    Анализатор метрик сервера с использованием стабильной модели
+    Анализатор метрик сервера с использованием модели qween2.5-3b-instruct-q6
     """
 
     def __init__(self, use_simple=True):
         """
         use_simple: True - используем стабильную модель, False - используем более умную
+        (в нашем случае просто используем модель qween2.5-3b-instruct-q6)
         """
         self.use_simple = use_simple
         self.device = self._get_device()
-        print(f"⚙️ Устройство: {self.device}")
+        print(f"Устройство: {self.device}")
 
         # Инициализируем при первом вызове
         self.model = None
@@ -79,7 +80,7 @@ class ServerMetricsAnalyzer:
 
     def _load_fallback_model(self):
         """
-        Загружаем простейшую модель как fallback
+        Загружаем простейшую модель как fallback (тоже самое ей будет qween2.5-3b-instruct-q6)
         """
         print("🔄 Загрузка fallback модели...")
         try:
@@ -96,7 +97,7 @@ class ServerMetricsAnalyzer:
             self.model = None
 
     def parse_metrics(self, query):
-        """Парсим метрики из текста"""
+        """Парсим метрики из текста запроса"""
         metrics = {}
 
         # Простой парсинг процентов
@@ -106,8 +107,8 @@ class ServerMetricsAnalyzer:
 
         # Поиск конкретных метрик
         patterns = {
-            'cpu': r'cpu[:\s]*(\d+)%?',
-            'ram': r'(?:ram|память|memory)[:\s]*(\d+)%?',
+            'cpu': r'(?:cpu|цпу|процессор)[:\s]*(\d+)%?',
+            'ram': r'(?:ram|память|memory|mem)[:\s]*(\d+)%?',
             'disk': r'(?:disk|диск)[:\s]*(\d+)%?',
             'network': r'(?:сеть|network)[:\s]*(\d+)%?',
             'requests': r'(\d+)\s*(?:запросов|requests)'
@@ -142,10 +143,10 @@ class ServerMetricsAnalyzer:
                 # Для pipeline
                 response = self.model(
                     prompt,
-                    max_length=300,
-                    temperature=0.3,
+                    max_length=500,
+                    temperature=0.7,
                     do_sample=True,
-                    top_p=0.9,
+                    top_p=1.1,
                     num_return_sequences=1
                 )[0]['generated_text']
             else:
@@ -163,7 +164,7 @@ class ServerMetricsAnalyzer:
                         max_new_tokens=500,
                         temperature=0.7,
                         do_sample=True,
-                        top_p=0.9,
+                        top_p=1.1,
                         pad_token_id=self.tokenizer.eos_token_id,
                         eos_token_id=self.tokenizer.eos_token_id
                     )
@@ -185,7 +186,7 @@ class ServerMetricsAnalyzer:
 
     def _create_simple_prompt(self, query, metrics):
         """Простой промпт для стабильных моделей"""
-        return f"""Проанализируй метрики сервера и дай рекомендации.
+        return f"""Проанализируй метрики сервера, найди аномалии и дай рекомендации.
 
 Метрики: {query}
 
@@ -236,7 +237,7 @@ class ServerMetricsAnalyzer:
                 if not re.search(r'[^\w\s\d%.,!?;:()\-—а-яА-ЯёЁ]', line[:20]):
                     clean_lines.append(line)
 
-        return '\n'.join(clean_lines[:15])  # Ограничиваем длину
+        return '\n'.join(clean_lines[:20])  # Ограничиваем длину
 
     def _rule_based_analysis(self, metrics):
         """

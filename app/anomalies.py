@@ -195,21 +195,24 @@ def create_anomaly_detection_section(df):
 
         with col_link:
             # Проверяем доступность контейнера Llama
-            LLAMA_UI_URL = "http://localhost:8080"
+            LLAMA_UI_URL_HEALTH = "http://llama-server:8080"
+            LLAMA_UI_URL = "http://0.0.0.0:8080"
 
-            try:
-                response = requests.get(f"{LLAMA_UI_URL}/health", timeout=2)
-                is_available = response.status_code == requests.codes.ok
-                print(is_available, response.status_code)
-                logger.info(is_available, response.status_code)
-
-            except requests.exceptions.RequestException:
+            # Функция для проверки доступности (выполняется на сервере)
+            @st.cache_data(ttl=30)  # Кэшируем результат на 30 секунд
+            def check_llama_availability():
                 try:
-                    # Пробуем другой эндпоинт
-                    response = requests.get(f"{LLAMA_UI_URL}", timeout=2)
-                    is_available = response.status_code == requests.codes.ok
-                except:
-                    is_available = False
+                    response = requests.get(f"{LLAMA_UI_URL_HEALTH}/health", timeout=5)
+                    return response.status_code == 200
+                except requests.exceptions.RequestException:
+                    try:
+                        response = requests.get(f"{LLAMA_UI_URL}", timeout=5)
+                        return response.status_code == 200
+                    except:
+                        return False
+
+            # В основном коде
+            is_available = check_llama_availability()
 
             if is_available:
                 st.link_button(
@@ -220,6 +223,7 @@ def create_anomaly_detection_section(df):
                     help="Откроет интерфейс LLM в новой вкладке"
                 )
             else:
-                st.warning("⚠️LLM UI недоступен")
-                if st.button("🔄Проверить снова", disabled=False, use_container_width=True):
+                st.warning("⚠️ LLM UI недоступен")
+                if st.button("🔄 Проверить снова"):
+                    st.cache_data.clear()  # Очищаем кэш
                     st.rerun()
