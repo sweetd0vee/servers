@@ -1,5 +1,3 @@
-
-
 import streamlit as st
 from llm import call_ai_analysis
 import requests
@@ -196,7 +194,7 @@ def create_anomaly_detection_section(df):
         with col_link:
             # Проверяем доступность контейнера Llama
             LLAMA_UI_URL_HEALTH = "http://llama-server:8080"
-            LLAMA_UI_URL = "http://0.0.0.0:8080"
+            LLAMA_UI_URL = "http://localhost:8080"
 
             # Функция для проверки доступности (выполняется на сервере)
             @st.cache_data(ttl=30)  # Кэшируем результат на 30 секунд
