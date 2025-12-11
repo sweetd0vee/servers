@@ -79,3 +79,23 @@ services:
       networks:
         - servers-network
       restart: unless-stopped
+
+
+  postgres:
+      image: arina/sber/postgres:16.9-bookworm
+      container_name: postgres
+      hostname: postgres
+      ports:
+        - 5432:5432
+      environment:
+        POSTGRES_USER: ${POSTGRES_USER}
+        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        SERVICE_5432_NAME: postgres
+        SERVICE_5432_CHECK_TCP: "true"
+        SERVICE_5432_CHECK_INTERVAL: 30s
+        SERVICE_5432_CHECK_TIMEOUT: 5s
+      volumes:
+        - ~/docker-share/postgres-data:/var/lib/postgresql/data
+      networks:
+        - servers-network
+      restart: unless-stopped
