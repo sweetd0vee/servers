@@ -15,3 +15,5 @@ MEMORY_THRESHOLDS = {
 LLM_URL = os.getenv("LLM_URL", "http://llama-server:8080/completion")
 LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "90"))
 LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "500"))
+LLAMA_UI_URL_HEALTH = "http://llama-server:8080"
+LLAMA_UI_URL = "http://localhost"
