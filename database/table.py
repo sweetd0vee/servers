@@ -12,7 +12,7 @@ class Servers(Base):
     vm = Column(String, nullable=False)
 
     # Date column with proper data type
-    date = Column(DateTime(timezone=True))
+    date = Column(String) # DateTime(timezone=True)
     # OR if you want it to auto-set on creation:
     # date = Column(DateTime(timezone=True), server_default=func.now())
 

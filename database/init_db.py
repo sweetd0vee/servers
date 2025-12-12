@@ -10,18 +10,20 @@ import uuid
 from datetime import datetime
 import os
 
+from base_logger import logger
+
 
 def init_database():
     """Инициализация базы данных"""
-    print("🔄 Создание таблиц в базе данных...")
+    logger.info("🔄 Создание таблиц в базе данных...")
 
     try:
         # Создаем все таблицы
         Base.metadata.create_all(bind=engine)
-        print("✅ Таблицы созданы успешно!")
+        logger.info("✅ Таблицы созданы успешно!")
         return True
     except Exception as e:
-        print(f"❌ Ошибка при создании таблиц: {e}")
+        logger.info(f"❌ Ошибка при создании таблиц: {e}")
         return False
 
 
