@@ -2,6 +2,12 @@
 
 ### AIOps project
 
+## Executive Summary
+
+This is an AIOps (Artificial Intelligence for IT Operations) dashboard application built with Streamlit for monitoring server
+metrics (CPU, Memory, Disk, Network) with AI-powered analysis capabilities. The project uses Docker for containerization,
+PostgreSQL for data storage, and integrates with Keycloak for authentication.
+
 **Запуск в Docker:**
 
 
@@ -10,9 +16,10 @@
 ```./docker-compose-up.sh```
 
 
-Файл самой модели имеет большой размер, поэтому мы его в docker-image не заносим, а делаем docker volume и мапим в docker-compose папку с моделью 
+The model file is too large, so we don't move it to the docker image. We create a docker volume and map a link to the model in docker-compose.
 /work/models/saiga_yandexgpt_8b.Q8_0.gguf
-на папку на локальном компьютере ~/docker-share/models.
+to point to ~/docker-share/models on the local computer.
+
 
 **Анализ CPU нагрузки:**
 ```lambda x: 'Низкая' if x < 20 else ('Высокая' if x > 70 else 'Нормальная')```
