@@ -1,8 +1,6 @@
 import pandas as pd
 import streamlit as st
 import warnings
-import json
-import requests
 from cpu import create_cpu_heatmap, create_cpu_load_chart
 from mem import create_memory_heatmap, create_memory_load_chart
 from table import create_load_timeline, create_server_classification_table
