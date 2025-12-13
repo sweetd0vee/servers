@@ -35,7 +35,7 @@ services:
       - servers-network
 
   vm-dashboard:
-    image: arina/sber:master
+    image: arina/sber/dashboard:master
     container_name: vm_dashboard
     hostname: vm_dashboard
     ports:
