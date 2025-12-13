@@ -22,89 +22,26 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS для улучшения отображения (добавляем стили для авторизации)
-st.markdown("""
-<style>
-    .main-header {
-        font-size: 2.5rem;
-        color: #1E3A8A;
-        text-align: center;
-        padding: 20px 0;
-    }
-    .metric-card {
-        background-color: #f8f9fa;
-        padding: 15px;
-        border-radius: 10px;
-        margin: 10px 0;
-    }
-    .warning-card {
-        background-color: #fff3cd;
-        padding: 15px;
-        border-radius: 10px;
-        margin: 10px 0;
-    }
-    .success-card {
-        background-color: #d4edda;
-        padding: 15px;
-        border-radius: 10px;
-        margin: 10px 0;
-    }
-    .anomaly-card {
-        background-color: #f8d7da;
-        padding: 20px;
-        border-radius: 10px;
-        margin: 10px 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        height: 100%;
-    }
-    .stDataFrame {
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    .stPlotlyChart {
-        padding: 10px;
-    }
-    .stButton button {
-        background-color: #1a1c24;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        margin: 4px 2px;
-        cursor: pointer;
-        border-radius: 8px;
-        font-weight: bold;
-        transition: all 0.3s;
-        width: 100%;
-    }
-    .stButton button:hover {
-        background-color: #2a2b34;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        padding-top: 10px !important;
-        padding-bottom: 10px !important;
-    }
-    .ai-response {
-        background-color: #f8f9fa;
-        border-left: 4px solid #17a2b8;
-        padding: 15px;
-        border-radius: 8px;
-        margin: 10px 0;
-        white-space: pre-wrap;
-        font-family: 'Courier New', monospace;
-        font-size: 14px;
-    }
-    .user-info {
-        background-color: #e8f4fd;
-        padding: 10px;
-        border-radius: 8px;
-        margin: 10px 0;
-        border-left: 4px solid #007bff;
-    }
-</style>
-""", unsafe_allow_html=True)
+# Загрузка CSS из файла
+def load_css():
+    css_path = "assets/styles.css"
+    if os.path.exists(css_path):
+        with open(css_path, "r", encoding="utf-8") as f:
+            css = f.read()
+        st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+    else:
+        # Fallback к hardcoded CSS
+        st.markdown("""
+        <style>
+            /* Минимальный CSS на случай отсутствия файла */
+            .main-header {
+                font-size: 2.5rem;
+                color: #1E3A8A;
+                text-align: center;
+                padding: 20px 0;
+            }
+        </style>
+        """, unsafe_allow_html=True)
 
 # Инициализация состояния сессии для аутентификации
 if 'authenticated' not in st.session_state:
@@ -131,7 +68,7 @@ def load_and_prepare_data(data_source='xlsx'):
     try:
         if data_source == 'xlsx':
             # Чтение данных из файла
-            df = pd.read_excel("data/metrics.xlsx")
+            df = pd.read_excel("../data/metrics.xlsx")
         # elif data_source == 'db':
         #     df = get_data_from_db()
 
@@ -506,6 +443,7 @@ def main():
 
 
 def run_app():
+    load_css()
     """Основная функция запуска приложения"""
     from auth import login_page, check_auth
 
