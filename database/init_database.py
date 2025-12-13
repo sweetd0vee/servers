@@ -9,26 +9,29 @@ import uuid
 from datetime import datetime
 import os
 
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from base_logger import logger
 
 
 def init_database():
     """Инициализация базы данных"""
-    logger.info("🔄 Создание таблиц в базе данных...")
+    logger.info("Создание таблиц в базе данных...")
 
     try:
         # Создаем все таблицы
         Base.metadata.create_all(bind=engine)
-        logger.info("✅ Таблицы созданы успешно!")
+        logger.info("Таблицы созданы успешно!")
         return True
     except Exception as e:
-        logger.info(f"❌ Ошибка при создании таблиц: {e}")
+        logger.info(f"Ошибка при создании таблиц: {e}")
         return False
 
 
 def load_excel_to_db(excel_path="data/metrics.xlsx"):
     """Загрузка данных из Excel в базу данных"""
-    print(f"📊 Загрузка данных из {excel_path}...")
+    print(f"Загрузка данных из {excel_path}...")
 
     try:
         # Чтение Excel файла
@@ -40,13 +43,13 @@ def load_excel_to_db(excel_path="data/metrics.xlsx"):
         # Загружаем данные в базу
         df.to_sql('servers', engine, if_exists='replace', index=False)
 
-        print(f"✅ Данные успешно загружены ({len(df)} записей)")
+        print(f"Данные успешно загружены ({len(df)} записей)")
         return True
     except FileNotFoundError:
-        print(f"❌ Файл {excel_path} не найден")
+        print(f"Файл {excel_path} не найден")
         return False
     except Exception as e:
-        print(f"❌ Ошибка при загрузке данных: {e}")
+        print(f"Ошибка при загрузке данных: {e}")
         return False
 
 
