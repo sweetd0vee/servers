@@ -3,7 +3,7 @@
 Создает таблицы и индексы
 """
 from database.connection import Base, engine, DATABASE_URL
-from database.table import ServerMetrics
+from database.models import ServerMetrics
 from base_logger import logger
 import sys
 

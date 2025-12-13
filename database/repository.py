@@ -8,7 +8,7 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func, desc
 from database.connection import get_db, SessionLocal
-from database.table import Servers
+from database.models import Servers
 from base_logger import logger
 
 
