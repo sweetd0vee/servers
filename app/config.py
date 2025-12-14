@@ -7,7 +7,7 @@ class Config:
     # Database
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
     DB_PORT: int = int(os.getenv("DB_PORT", "5432"))
-    DB_NAME: str = os.getenv("DB_NAME", "server_monitoring")
+    DB_NAME: str = os.getenv("DB_NAME", "server_metrics")
 
     # Thresholds
     CPU_THRESHOLDS = {

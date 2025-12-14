@@ -3,7 +3,7 @@ import streamlit as st
 import warnings
 from cpu import create_cpu_heatmap, create_cpu_load_chart
 from mem import create_memory_heatmap, create_memory_load_chart
-from table import create_load_timeline, create_server_classification_table
+from table import create_load_timeline, create_server_classification_table, create_summary_metrics
 from anomalies import create_anomaly_detection_section, detect_statistical_anomalies
 import os
 from dotenv import load_dotenv
@@ -55,15 +55,50 @@ if 'anomaly_response' not in st.session_state:
     st.session_state.anomaly_response = None
 
 
-@st.cache_data
-def load_and_prepare_data(data_source='xlsx'):
-    """Загрузка и подготовка данных"""
+@st.cache_data(ttl=300)  # Кэш на 5 минут
+def load_and_prepare_data(data_source='db', vm=None, start_date=None, end_date=None):
+    """
+    Загрузка и подготовка данных
+
+    Args:
+        data_source: Источник данных ('db' или 'xlsx')
+        vm: Фильтр по серверу (опционально)
+        start_date: Начальная дата (опционально)
+        end_date: Конечная дата (опционально)
+    """
     try:
-        if data_source == 'xlsx':
-            # Чтение данных из файла
+        if data_source == 'db':
+            # Чтение данных из базы данных
+            from database.repository import get_metrics_from_db
+            from datetime import date as date_type
+
+            # Преобразуем даты если нужно
+            if start_date and isinstance(start_date, str):
+                start_date = pd.to_datetime(start_date).date()
+            if end_date and isinstance(end_date, str):
+                end_date = pd.to_datetime(end_date).date()
+
+            df = get_metrics_from_db(
+                vm=vm,
+                start_date=start_date,
+                end_date=end_date
+            )
+
+            if df.empty:
+                st.warning("База данных пуста. Используйте импорт данных из Excel.")
+                # Пробуем загрузить из Excel как fallback
+                try:
+                    df = pd.read_excel("../data/metrics.xlsx")
+                    st.info("Загружены данные из Excel файла (fallback)")
+                except:
+                    return pd.DataFrame()
+
+        elif data_source == 'xlsx':
+            # Чтение данных из файла (legacy)
             df = pd.read_excel("../data/metrics.xlsx")
-        # elif data_source == 'db':
-        #     df = get_data_from_db()
+        else:
+            st.error(f"Неизвестный источник данных: {data_source}")
+            return pd.DataFrame()
 
         # Проверка необходимых колонок
         required_columns = ['date', 'vm', 'metric', 'avg_value']
@@ -134,66 +169,16 @@ def load_and_prepare_data(data_source='xlsx'):
         st.error("Файл data/metrics.xlsx не найден. Пожалуйста, проверьте путь к файлу.")
         return pd.DataFrame()
     except Exception as e:
-        st.error(f"Ошибка при загрузке данных: {str(e)}")
+        error_msg = str(e)
+        st.error(f"Ошибка при загрузке данных: {error_msg}")
+        logger.error(f"Ошибка загрузки данных: {error_msg}", exc_info=True)
+
+        # Показываем подсказку если ошибка БД
+        if data_source == 'db' and 'connection' in error_msg.lower():
+            st.info(
+                "Совет: Проверьте подключение к базе данных. Используйте 'xlsx' как источник данных для работы без БД.")
+
         return pd.DataFrame()
-
-
-def create_summary_metrics(df):
-    """Создание карточек с метриками"""
-    if df.empty:
-        return {
-            'total_servers': 0,
-            'period': 'Нет данных',
-            'cpu_low': 0,
-            'cpu_normal': 0,
-            'cpu_high': 0,
-            'mem_low': 0,
-            'mem_normal': 0,
-            'mem_high': 0
-        }
-
-    # Общие метрики
-    total_servers = df['vm'].nunique()
-    start_date = df['date'].min().strftime('%d.%m.%Y')
-    end_date = df['date'].max().strftime('%d.%m.%Y')
-
-    # Анализ CPU нагрузки
-    cpu_data = df[df['metric'].str.contains('cpu.usage', case=False, na=False)].copy()
-    if not cpu_data.empty:
-        cpu_data['cpu_category'] = cpu_data['avg_value'].apply(
-            lambda x: 'Низкая' if x < 20 else ('Высокая' if x > 70 else 'Нормальная')
-        )
-    else:
-        cpu_data['cpu_category'] = 'Нет данных'
-
-    # Анализ Memory нагрузки
-    mem_data = df[df['metric'].str.contains('mem.usage', case=False, na=False)].copy()
-    if not mem_data.empty:
-        mem_data['mem_category'] = mem_data['avg_value'].apply(
-            lambda x: 'Низкая' if x < 30 else ('Высокая' if x > 80 else 'Нормальная')
-        )
-    else:
-        mem_data['mem_category'] = 'Нет данных'
-
-    # Подсчет по категориям
-    cpu_low = cpu_data[cpu_data['cpu_category'] == 'Низкая']['vm'].nunique()
-    cpu_normal = cpu_data[cpu_data['cpu_category'] == 'Нормальная']['vm'].nunique()
-    cpu_high = cpu_data[cpu_data['cpu_category'] == 'Высокая']['vm'].nunique()
-
-    mem_low = mem_data[mem_data['mem_category'] == 'Низкая']['vm'].nunique()
-    mem_normal = mem_data[mem_data['mem_category'] == 'Нормальная']['vm'].nunique()
-    mem_high = mem_data[mem_data['mem_category'] == 'Высокая']['vm'].nunique()
-
-    return {
-        'total_servers': total_servers,
-        'period': f"{start_date} - {end_date}",
-        'cpu_low': cpu_low,
-        'cpu_normal': cpu_normal,
-        'cpu_high': cpu_high,
-        'mem_low': mem_low,
-        'mem_normal': mem_normal,
-        'mem_high': mem_high
-    }
 
 
 def main():

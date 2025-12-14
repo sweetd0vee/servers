@@ -340,7 +340,7 @@ torch>=2.2.2               # Для локального LLM
 # Database
 DB_HOST=postgres
 DB_PORT=5432
-DB_NAME=server_monitoring
+DB_NAME=server_metrics
 DB_USER=postgres
 DB_PASSWORD=your_password
 
