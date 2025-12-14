@@ -17,18 +17,20 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from base_logger import logger
 
 # Configuration (should be in environment variables in production)
-KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "http://localhost:8080")
-KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "myrealm")
-KEYCLOAK_CLIENT_ID = os.getenv("KEYCLOAK_CLIENT_ID", "streamlit-app")
-KEYCLOAK_CLIENT_SECRET = os.getenv("KEYCLOAK_CLIENT_SECRET", "")
-KEYCLOAK_REDIRECT_URI = os.getenv("KEYCLOAK_REDIRECT_URI", "http://localhost:8501")
+KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "http://localhost:8087/keycloak")
+KEYCLOAK_URL_FOR_AUTH = os.getenv("KEYCLOAK_URL_FOR_AUTH", "http://localhost:8087/keycloak")
+
+KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "srv")
+KEYCLOAK_CLIENT_ID = os.getenv("KEYCLOAK_CLIENT_ID", "srv-keycloak-client")
+KEYCLOAK_CLIENT_SECRET = os.getenv("KEYCLOAK_CLIENT_SECRET", "12tbrbzRuSX48jI08yPKdxo8OcqtPhrq")
+KEYCLOAK_REDIRECT_URI = os.getenv("KEYCLOAK_REDIRECT_URI", "http://localhost:8501/dashboard")
 
 # Keycloak endpoints
-KEYCLOAK_AUTH_URL = f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/auth"
+KEYCLOAK_AUTH_URL = f"{KEYCLOAK_URL_FOR_AUTH}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/auth"
 KEYCLOAK_TOKEN_URL = f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/token"
-KEYCLOAK_LOGOUT_URL = f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/logout"
 KEYCLOAK_CERTS_URL = f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs"
 KEYCLOAK_USERINFO_URL = f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/userinfo"
+KEYCLOAK_LOGOUT_URL = f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/logout"
 
 # Cache for public key
 PUBLIC_KEY_CACHE = None
@@ -53,7 +55,7 @@ def get_public_key():
         # Get the first RSA key
         rsa_key = None
         for key in jwks["keys"]:
-            if key["kty"] == "RSA":
+            if key["kty"] == "RSA" and key["alg"] == "RS256":
                 rsa_key = key
                 break
 
@@ -81,12 +83,16 @@ def verify_token(token: str):
         if not public_key:
             return None
 
+        # TODO review it
+        payload_unverified = jwt.decode(token, options={"verify_signature": False})
+        actual_aud = payload_unverified.get('aud')
         # Decode and verify token
         payload = jwt.decode(
             token,
             public_key,
             algorithms=["RS256"],
-            audience=KEYCLOAK_CLIENT_ID,
+            audience=actual_aud,
+            #issuer=f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}",
             options={"verify_exp": True}
         )
 
@@ -141,7 +147,7 @@ def exchange_code_for_token(code: str):
         return None
 
 
-def refresh_token(refresh_token: str):
+def refresh_token_method(refresh_token: str):
     """Refresh access token using refresh token"""
     try:
         data = {
@@ -247,32 +253,6 @@ def login_page():
             </a>
             """, unsafe_allow_html=True)
 
-            st.markdown("---")
-
-            # Development mode (for testing without Keycloak)
-            if st.checkbox("Enable Development Mode"):
-                with st.form("dev_login"):
-                    st.markdown("#### Development Login")
-                    username = st.text_input("Username")
-                    email = st.text_input("Email")
-                    roles = st.multiselect(
-                        "Roles",
-                        ["admin", "user", "viewer"],
-                        default=["user"]
-                    )
-
-                    if st.form_submit_button("Login (Dev Mode)"):
-                        st.session_state["authenticated"] = True
-                        st.session_state["user_info"] = {
-                            "preferred_username": username,
-                            "email": email,
-                            "name": username,
-                            "roles": roles
-                        }
-                        st.session_state["access_token"] = "dev-token"
-                        st.success(f"Logged in as {username} (Dev Mode)")
-                        st.rerun()
-
 
 def check_auth():
     """Check if user is authenticated and token is valid"""
@@ -323,7 +303,7 @@ def check_auth():
                     # Try to refresh the token
                     refresh_token = st.session_state.get("refresh_token", "")
                     if refresh_token:
-                        token_response = refresh_token(refresh_token)
+                        token_response = refresh_token_method(refresh_token)
                         if token_response:
                             st.session_state["access_token"] = token_response["access_token"]
                             st.session_state["refresh_token"] = token_response.get("refresh_token", "")
@@ -336,7 +316,7 @@ def check_auth():
                 # Token is invalid, try to refresh
                 refresh_token = st.session_state.get("refresh_token", "")
                 if refresh_token:
-                    token_response = refresh_token(refresh_token)
+                    token_response = refresh_token_method(refresh_token)
                     if token_response:
                         st.session_state["access_token"] = token_response["access_token"]
                         st.session_state["refresh_token"] = token_response.get("refresh_token", "")
@@ -594,11 +574,11 @@ if __name__ == "__main__":
         Please set the following environment variables:
 
         ```bash
-        export KEYCLOAK_URL="http://localhost:8080"
-        export KEYCLOAK_REALM="myrealm"
-        export KEYCLOAK_CLIENT_ID="streamlit-app"
-        export KEYCLOAK_CLIENT_SECRET="your-client-secret"
-        export KEYCLOAK_REDIRECT_URI="http://localhost:8501"
+        export KEYCLOAK_URL="http://localhost:8087/keycloak"
+        export KEYCLOAK_REALM=srv
+        export KEYCLOAK_CLIENT_ID=srv-keycloak-client
+        export KEYCLOAK_CLIENT_SECRET=clientsecret
+        export KEYCLOAK_REDIRECT_URI="http://localhost:8501/dashboard"
         ```
 
         Using development mode for now.

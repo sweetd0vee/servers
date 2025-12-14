@@ -210,14 +210,14 @@ def main():
 
             st.markdown(f"""
             <div class="user-info">
-                <strong>{user.get('full_name', 'Пользователь')}</strong><br>
+                <strong>{user.get('name', 'Пользователь')}</strong><br>
                 <small>{role_badge}</small>
             </div>
             """, unsafe_allow_html=True)
 
     with col_header3:
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("Выход", use_container_width=True):
+        if st.button("🚪 Выход", use_container_width=True):
             from auth import logout_user
             logout_user()
             return
@@ -332,7 +332,7 @@ def main():
             <div class="metric-card", style="color: black;">
                 <h3>Нагрузка CPU</h3>
                 <p>🟢 Низкая: <strong>{metrics['cpu_low']}</strong> серверов</p>
-                <p>🟡 Нормальная: <strong>{metrics['normal']}</strong> серверов</p>
+                <p>🟡 Нормальная: <strong>{metrics['cpu_normal']}</strong> серверов</p>
                 <p>🔴 Высокая: <strong>{metrics['cpu_high']}</strong> серверов</p>
             </div>
             """, unsafe_allow_html=True)
@@ -450,17 +450,7 @@ def main():
 
 def run_app():
     """Основная функция запуска приложения"""
-    from auth import login_page, check_auth
-
-    # Если не авторизован, показываем страницу входа
-    if not st.session_state.get("authenticated", False):
-        login_page()
-    else:
-        # Проверяем токен
-        if not check_auth():
-            login_page()
-        else:
-            main()
+    main()
 
 
 if __name__ == "__main__":

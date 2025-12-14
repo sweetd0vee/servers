@@ -25,4 +25,4 @@ COPY ./base_logger.py /work
 
 WORKDIR /work/app
 
-CMD ["streamlit", "run", "app.py"]
+CMD ["streamlit", "run", "app_new.py"]
