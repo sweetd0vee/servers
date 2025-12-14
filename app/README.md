@@ -376,7 +376,7 @@ pip install -r requirements.txt
 
 ```bash
 # Development
-streamlit run app/app_new.py
+streamlit run app/app.py
 
 # Production (через Docker)
 docker-compose up
@@ -389,23 +389,6 @@ docker-compose up
 ---
 
 ## 📊 Примеры использования
-
-### Пример 1: Загрузка и отображение данных
-
-```python
-import streamlit as st
-from app.app_new import load_and_prepare_data, create_summary_metrics
-
-# Загрузка данных
-df = load_and_prepare_data(data_source='db')
-
-# Создание сводных метрик
-metrics = create_summary_metrics(df)
-
-# Отображение
-st.metric("Всего серверов", metrics['total_servers'])
-st.metric("CPU высокая нагрузка", metrics['cpu_high'])
-```
 
 ### Пример 2: Создание визуализаций
 

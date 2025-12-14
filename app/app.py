@@ -7,14 +7,13 @@ from table import create_load_timeline, create_server_classification_table, crea
 from anomalies import create_anomaly_detection_section, detect_statistical_anomalies
 import os
 from dotenv import load_dotenv
+from auth import require_auth, get_current_user, has_role
 from base_logger import logger
 
 # Загружаем переменные окружения (для API ключей)
 load_dotenv()
 
-
 warnings.filterwarnings('ignore')
-
 
 # Загрузка CSS из файла
 def load_css():
@@ -37,7 +36,6 @@ def load_css():
         </style>
         """, unsafe_allow_html=True)
 
-
 # Настройка страницы
 st.set_page_config(
     page_title="Дашборд мониторинга серверов",
@@ -45,6 +43,16 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Инициализация состояния сессии для аутентификации
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+if 'user' not in st.session_state:
+    st.session_state.user = None
+if 'access_token' not in st.session_state:
+    st.session_state.access_token = None
+if 'role' not in st.session_state:
+    st.session_state.role = None
 
 # Инициализация состояния сессии для аномалий
 if 'anomaly_mode' not in st.session_state:
@@ -181,28 +189,91 @@ def load_and_prepare_data(data_source='db', vm=None, start_date=None, end_date=N
         return pd.DataFrame()
 
 
+@require_auth
 def main():
-    load_css()
-    # Заголовок
-    st.markdown("<h1 class='main-header'>Дашборд мониторинга нагрузки серверов</h1>", unsafe_allow_html=True)
+    # Информация о пользователе в заголовке
+    user = get_current_user()
+
+    # Заголовок с информацией о пользователе
+    col_header1, col_header2, col_header3 = st.columns([4, 1, 1])
+
+    with col_header1:
+        st.markdown("<h1 class='main-header'>Дашборд мониторинга нагрузки серверов</h1>", unsafe_allow_html=True)
+
+    with col_header2:
+        if user:
+            role_badge = {
+                "admin": "Админ",
+                "user": "Пользователь",
+                "viewer": "Наблюдатель"
+            }.get(user.get("role", ""), "Гость")
+
+            st.markdown(f"""
+            <div class="user-info">
+                <strong>{user.get('name', 'Пользователь')}</strong><br>
+                <small>{role_badge}</small>
+            </div>
+            """, unsafe_allow_html=True)
+
+    with col_header3:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🚪 Выход", use_container_width=True):
+            from auth import logout_user
+            logout_user()
+            return
+
+    # Выбор источника данных (только для админов) - в sidebar перед загрузкой
+    data_source = 'db'  # По умолчанию используем БД
+
+    # Создаем sidebar для выбора источника данных
+    with st.sidebar:
+        if has_role("admin"):
+            st.markdown("### Настройки данных")
+            data_source = st.radio(
+                "Источник данных:",
+                ['db', 'xlsx'],
+                index=0,
+                help="db - база данных (рекомендуется), xlsx - Excel файл"
+            )
+            st.markdown("---")
 
     # Загрузка данных
     with st.spinner('Загрузка и анализ данных...'):
-        df = load_and_prepare_data()
+        df = load_and_prepare_data(data_source=data_source)
 
         if df.empty:
-            st.error("Не удалось загрузить данные. Пожалуйста, проверьте файл data/metrics.xlsx")
+            if data_source == 'db':
+                st.error("База данных пуста или недоступна.")
+                st.info("Используйте импорт данных из Excel или проверьте подключение к БД.")
+            else:
+                st.error("Не удалось загрузить данные. Пожалуйста, проверьте файл data/metrics.xlsx")
             return
 
         metrics = create_summary_metrics(df)
 
     # Если режим анализа аномалий активен, показываем только секцию аномалий
     if st.session_state.anomaly_mode:
-        create_anomaly_detection_section(df)
-        return
+        # Проверка прав для анализа аномалий
+        if has_role("viewer"):
+            st.warning("У вас недостаточно прав для анализа аномалий. Требуется роль пользователя или администратора.")
+            st.session_state.anomaly_mode = False
+            st.rerun()
+        else:
+            create_anomaly_detection_section(df)
+            return
 
-    # Боковая панель (только если не в режиме анализа аномалий)
+    # Боковая панель с учетом ролей
     with st.sidebar:
+        # Информация о пользователе
+        if user:
+            st.markdown(f"### {user.get('full_name', 'Пользователь')}")
+            st.markdown(f"**Роль:** {user.get('role', 'Не определена')}")
+            st.markdown(f"**Email:** {user.get('email', 'Не указан')}")
+            st.markdown("---")
+
+        # Разрешенные действия в зависимости от роли
+        user_role = st.session_state.get("role", "viewer")
+
         # Выбор сервера для детального анализа
         servers = sorted(df['vm'].unique())
         selected_server = st.selectbox(
@@ -213,7 +284,6 @@ def main():
 
         # Фильтр по дате
         st.markdown("---")
-
         min_date = df['date'].min().date()
         max_date = df['date'].max().date()
 
@@ -228,6 +298,23 @@ def main():
             start_date, end_date = date_range
             df = df[(df['date'].dt.date >= start_date) & (df['date'].dt.date <= end_date)]
 
+        # Дополнительные опции для админов
+        if has_role("admin"):
+            st.markdown("---")
+            st.markdown("### Администрирование")
+            if st.button("Управление пользователями", use_container_width=True):
+                st.info("Функция управления пользователями в разработке")
+
+            if st.button("Экспорт данных", use_container_width=True):
+                csv = df.to_csv(index=False)
+                st.download_button(
+                    label="📥 Скачать CSV",
+                    data=csv,
+                    file_name="server_metrics.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+
     # Основной контент
     col1, col2, col3 = st.columns(3)
 
@@ -241,38 +328,42 @@ def main():
             """, unsafe_allow_html=True)
 
     with col2:
-            st.markdown(f"""
+        st.markdown(f"""
             <div class="metric-card", style="color: black;">
                 <h3>Нагрузка CPU</h3>
-                <p>🟢 Низкая: <strong>{14}</strong> серверов</p>
-                <p>🟡 Нормальная: <strong>{5}</strong> серверов</p>
-                <p>🔴 Высокая: <strong>{1}</strong> серверов</p>
+                <p>🟢 Низкая: <strong>{metrics['cpu_low']}</strong> серверов</p>
+                <p>🟡 Нормальная: <strong>{metrics['cpu_normal']}</strong> серверов</p>
+                <p>🔴 Высокая: <strong>{metrics['cpu_high']}</strong> серверов</p>
             </div>
             """, unsafe_allow_html=True)
 
     with col3:
-            st.markdown(f"""
+        st.markdown(f"""
             <div class="metric-card", style="color: black;">
                     <h3>Нагрузка памяти</h3>
-                    <p>🟢 Низкая: <strong>{14}</strong> серверов</p>
-                    <p>🟡 Нормальная: <strong>{6}</strong> серверов</p>
-                    <p>🔴 Высокая: <strong>{0}</strong> серверов</p>
+                    <p>🟢 Низкая: <strong>{metrics['mem_low']}</strong> серверов</p>
+                    <p>🟡 Нормальная: <strong>{metrics['mem_normal']}</strong> серверов</p>
+                    <p>🔴 Высокая: <strong>{metrics['mem_high']}</strong> серверов</p>
             </div>
             """, unsafe_allow_html=True)
 
-    # Секция поиска аномалий (краткая версия)
-    st.markdown("---")
-    col_anomaly1, col_anomaly2 = st.columns([3, 1])
+    # Секция поиска аномалий (только для пользователей и админов)
+    if not has_role("viewer"):
+        st.markdown("---")
+        col_anomaly1, col_anomaly2 = st.columns([3, 1])
 
-    with col_anomaly1:
-        st.markdown("### 🔍 Быстрый анализ")
-        st.markdown("Нажмите кнопку для детального анализа метрик, поиска аномалий и получения рекомендаций с помощью AI")
+        with col_anomaly1:
+            st.markdown("### Быстрый анализ")
+            st.markdown(
+                "Нажмите кнопку для детального анализа метрик, поиска аномалий и получения рекомендаций с помощью AI")
 
-    with col_anomaly2:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("Запустить", type="secondary", use_container_width=True):
-            st.session_state.anomaly_mode = True
-            st.rerun()
+        with col_anomaly2:
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("Запустить", type="secondary", use_container_width=True):
+                st.session_state.anomaly_mode = True
+                st.rerun()
+    else:
+        st.info("👀 Вы находитесь в режиме просмотра. Для анализа аномалий требуются дополнительные права.")
 
     # Таблица классификации всех серверов
     st.markdown("---")
@@ -357,5 +448,11 @@ def main():
     st.plotly_chart(fig_timeline, use_container_width=True)
 
 
-if __name__ == "__main__":
+def run_app():
+    """Основная функция запуска приложения"""
     main()
+
+
+if __name__ == "__main__":
+    load_css()
+    run_app()
