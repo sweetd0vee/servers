@@ -1,6 +1,7 @@
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from config import Config
 
 import os
 import sys
@@ -40,10 +41,10 @@ def create_server_classification_table(df):
         logger.info('- "🔴 Высокая" если >= 70%')
 
         def classify_cpu(x):
-            if x < 20:
+            if x < Config.CPU_THRESHOLDS['low']:
                 logger.debug(f'CPU значение {x}% классифицировано как "🟢 Низкая"')
                 return '🟢 Низкая'
-            elif x < 70:
+            elif x < Config.CPU_THRESHOLDS['high']:
                 logger.debug(f'CPU значение {x}% классифицировано как "🟡 Нормальная"')
                 return '🟡 Нормальная'
             else:
@@ -56,10 +57,10 @@ def create_server_classification_table(df):
         logger.info('- "🔴 Высокая" если >= 80%')
 
         def classify_mem(x):
-            if x < 30:
+            if x < Config.MEM_THRESHOLDS['low']:
                 logger.debug(f'Memory значение {x}% классифицировано как "🟢 Низкая"')
                 return '🟢 Низкая'
-            elif x < 80:
+            elif x < Config.MEM_THRESHOLDS['high']:
                 logger.debug(f'Memory значение {x}% классифицировано как "🟡 Нормальная"')
                 return '🟡 Нормальная'
             else:
@@ -320,12 +321,12 @@ def create_load_timeline(df, selected_server):
         # Логируем пиковые значения
         if len(cpu_data) > 0:
             max_cpu = cpu_data['avg_value'].max()
-            if max_cpu >= 70:
+            if max_cpu >= Config.CPU_THRESHOLDS['high']:
                 logger.warning(f'Максимальная CPU нагрузка для {selected_server}: {max_cpu:.2f}% (превышает порог 70%)')
 
         if len(mem_data) > 0:
             max_mem = mem_data['avg_value'].max()
-            if max_mem >= 80:
+            if max_mem >= Config.MEM_THRESHOLDS['high']:
                 logger.warning(
                     f'Максимальная Memory нагрузка для {selected_server}: {max_mem:.2f}% (превышает порог 80%)')
 

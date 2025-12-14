@@ -15,6 +15,11 @@ class Config:
         'high': int(os.getenv("CPU_HIGH_THRESHOLD", "70"))
     }
 
+    MEM_THRESHOLDS = {
+        'low': int(os.getenv("CPU_LOW_THRESHOLD", "30")),
+        'high': int(os.getenv("CPU_HIGH_THRESHOLD", "80"))
+    }
+
     # LLM
     LLM_URL: str = os.getenv("LLM_URL", "http://llama-server:8080/completion")
     LLM_TIMEOUT: int = int(os.getenv("LLM_TIMEOUT", "90"))
