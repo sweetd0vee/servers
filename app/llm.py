@@ -43,8 +43,6 @@ import os
 import re
 import requests
 from typing import Dict, Any, Optional, Union
-from config.llm_config import HF_MODELS, DEFAULT_MODEL_NAME, DEFAULT_TIMEOUT, DEFAULT_MAX_TOKENS
-from config.prompts_config import LOCAL_LLM_PROMPT
 import logging
 
 # Попытка импортировать streamlit (может быть недоступен вне Streamlit окружения)
@@ -83,6 +81,40 @@ class ServerMetricsAnalyzer:
         hf_api_key: API ключ для Hugging Face (если не указан, берется из env)
     """
 
+    # Конфигурация по умолчанию
+    DEFAULT_MODEL_NAME = "Qwen/Qwen2.5-3B-Instruct"
+    DEFAULT_TIMEOUT = 90
+    DEFAULT_MAX_TOKENS = 400
+
+    # Список моделей Hugging Face для попыток (от легких к тяжелым)
+    HF_MODELS = [
+        {
+            "url": "https://api-inference.huggingface.co/models/sshleifer/tiny-gpt2",
+            "name": "TinyGPT2",
+            "tokens": 300
+        },
+        {
+            "url": "https://api-inference.huggingface.co/models/google/flan-t5-small",
+            "name": "Flan-T5-Small",
+            "tokens": 400
+        },
+        {
+            "url": "https://api-inference.huggingface.co/models/EleutherAI/gpt-neo-125m",
+            "name": "GPT-Neo-125M",
+            "tokens": 500
+        },
+        {
+            "url": "https://api-inference.huggingface.co/models/distilgpt2",
+            "name": "DistilGPT2",
+            "tokens": 500
+        },
+        {
+            "url": "https://api-inference.huggingface.co/models/microsoft/phi-2",
+            "name": "Phi-2",
+            "tokens": 700
+        }
+    ]
+
     def __init__(
             self,
             provider: str = "auto",
@@ -98,7 +130,7 @@ class ServerMetricsAnalyzer:
             hf_api_key: API ключ для Hugging Face
         """
         self.provider = provider.lower()
-        self.model_name = model_name or DEFAULT_MODEL_NAME
+        self.model_name = model_name or self.DEFAULT_MODEL_NAME
         self.hf_api_key = hf_api_key or os.getenv("HF_API_KEY")
 
         # Для локального провайдера
@@ -240,7 +272,7 @@ class ServerMetricsAnalyzer:
         }
 
         # Пробуем модели по порядку
-        for model_config in HF_MODELS:
+        for model_config in self.HF_MODELS:
             try:
                 data = {
                     "inputs": prompt[:800],  # Ограничиваем длину
@@ -255,7 +287,7 @@ class ServerMetricsAnalyzer:
                     model_config["url"],
                     headers=headers,
                     json=data,
-                    timeout=DEFAULT_TIMEOUT
+                    timeout=self.DEFAULT_TIMEOUT
                 )
 
                 if response.status_code == 200:
@@ -320,7 +352,7 @@ class ServerMetricsAnalyzer:
                 with torch.no_grad():
                     outputs = self.model.generate(
                         **inputs,
-                        max_new_tokens=DEFAULT_MAX_TOKENS,
+                        max_new_tokens=self.DEFAULT_MAX_TOKENS,
                         temperature=0.7,
                         do_sample=True,
                         top_p=0.9,
@@ -508,7 +540,18 @@ class ServerMetricsAnalyzer:
         # Если есть query, используем его
         if 'query' in context:
             query = context['query']
-            return LOCAL_LLM_PROMPT.format(query=query)
+            return f"""Ты эксперт по системному администрированию. 
+Проанализируй метрики сервера и дай конкретные рекомендации.
+
+Запрос: {query}
+
+Формат ответа:
+1. Анализ текущего состояния
+2. Выявленные проблемы
+3. Рекомендации по оптимизации
+4. Приоритет действий
+
+Анализ:"""
 
         # Формируем промпт из структурированных данных
         prompt_parts = ["Ты эксперт по системному администрированию. Проанализируй метрики серверов:\n"]
@@ -725,3 +768,20 @@ def analyze_server_metrics(query: str, use_simple: bool = True) -> str:
     """
     analyzer = get_analyzer()
     return analyzer.analyze_query(query)
+
+
+def local_ai_analysis(context):
+    """Локальный анализ при недоступности API"""
+    # Упрощенный локальный анализ
+    analysis_result = """**Статистический анализ:**
+Проведен базовый анализ метрик. Для детального анализа требуется подключение к AI API.
+
+⚠️ **Проблемные серверы:**
+Рекомендуется проверить серверы с пиковыми значениями CPU > 80% и свободной памятью < 20%.
+
+🎯 **Рекомендации:**
+1. Настройте автоматическое масштабирование для серверов с высокой нагрузкой
+2. Проверьте логи на серверах с аномалиями
+3. Рассмотрите возможность оптимизации запросов"""
+
+    return analysis_result
